@@ -1,0 +1,26 @@
+---
+# tasks file for common
+- name: Update repository and Upgrade packages
+  apt:
+    upgrade: dist
+    update_cache: yes
+    state: latest
+    force_apt_get: yes
+    cache_valid_time: 3600
+
+- name: Upgrade packages
+  apt: upgrade=safe
+  tags: common_upgrade_packages
+
+- name: Install common packages
+  apt:
+    name:
+      - curl
+      - wget
+      - git-core
+      - ufw
+      - unzip
+      - acl
+    state: present
+    update_cache: yes
+  tags: common_install_packages

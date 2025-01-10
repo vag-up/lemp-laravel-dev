@@ -1,0 +1,16 @@
+# roles/mariadb/defaults/main.yml
+---
+
+mariadb_databases: []
+mariadb_users: []
+mariadb_root_password: ''
+
+mariadb_version: '11.6'
+
+mariadb_configure_swappiness: true
+mariadb_swappiness: 0
+
+mariadb_character_set_server: utf8
+mariadb_collation_server: utf8_general_ci
+
+mariadb_service: mariadb

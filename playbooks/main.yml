@@ -1,0 +1,51 @@
+- hosts: all
+  vars:
+    # Server domain
+    #domain_name: example.com # if you want to use a domain name
+
+    # Server timezone
+    timesync_timezone: Asia/Tokyo
+    timesync_ntp_hosts:
+      - ntp.nict.jp
+
+    # PHP
+    php_version: 8.4
+    php_date_timezone: Asia/Tokyo
+    php_mbstring_language: Japanese
+
+    # MariaDB
+    mariadb_version: 11.7
+    mariadb_root_password: root
+
+    # Laravel
+    laravel_version: '11.*'
+
+    # Sample database for Japanese
+    sample_db_host: 'localhost'
+    sample_db_name: 'my_database'
+    sample_db_user: 'my_user'
+    sample_db_password: 'my_password'
+    mariadb_databases:
+      - name: '{{ sample_db_name }}'
+        encoding: utf8mb4
+        collation: utf8mb4_general_ci
+    mariadb_users:
+      - name: '{{ sample_db_user}}'
+        password: '{{ sample_db_password }}'
+        priv: '{{ sample_db_name }}.*:ALL'
+        host: '{{ sample_db_host}}'
+
+  roles:
+    - stuvusit.systemd-timesyncd
+    - common
+    - php
+    - nginx
+    - mariadb
+    - phpmyadmin
+
+  tasks:
+    - name: Create Laravel project
+      shell: composer create-project 'laravel/laravel:{{ laravel_version }}' app
+      args:
+        chdir: /var/www/remote
+        creates: /var/www/remote/app
