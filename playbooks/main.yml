@@ -1,7 +1,11 @@
 - hosts: all
   vars:
-    # Server domain
+    # System configuration
+    system_remote_root: /vagrant/remote
+
+    # Web server configuration
     #domain_name: example.com # if you want to use a domain name
+    www_document_root: /var/www/remote/laravel-app/public # Laravel public directory
 
     # Server timezone
     timesync_timezone: Asia/Tokyo
@@ -19,21 +23,23 @@
 
     # Laravel
     laravel_version: '11.*'
+    laravel_project: /var/www/remote/laravel-app
 
-    # Sample database for Japanese
-    sample_db_host: 'localhost'
-    sample_db_name: 'my_database'
-    sample_db_user: 'my_user'
-    sample_db_password: 'my_password'
+    # Database for development
+    db_host: 'localhost'
+    db_port: 3306
+    db_name: 'my_database'
+    db_user: 'my_user'
+    db_password: 'my_password'
     mariadb_databases:
-      - name: '{{ sample_db_name }}'
+      - name: '{{ db_name }}'
         encoding: utf8mb4
         collation: utf8mb4_general_ci
     mariadb_users:
-      - name: '{{ sample_db_user}}'
-        password: '{{ sample_db_password }}'
-        priv: '{{ sample_db_name }}.*:ALL'
-        host: '{{ sample_db_host}}'
+      - name: '{{ db_user}}'
+        password: '{{ db_password }}'
+        priv: '{{ db_name }}.*:ALL'
+        host: '{{ db_host}}'
 
   roles:
     - stuvusit.systemd-timesyncd
@@ -45,7 +51,28 @@
 
   tasks:
     - name: Create Laravel project
-      shell: composer create-project 'laravel/laravel:{{ laravel_version }}' app
+      shell: composer create-project 'laravel/laravel:{{ laravel_version }}' laravel-app
       args:
         chdir: /var/www/remote
-        creates: /var/www/remote/app
+        creates: /var/www/remote/laravel-app
+
+    - name: Add database configuration to .env file
+      shell: |
+        sed -i 's/^\(DB_CONNECTION=.*\)$/#\1/' {{ laravel_project }}/.env
+        sed -i 's/^\(DB_HOST=.*\)$/#\1/' {{ laravel_project }}/.env
+        sed -i 's/^\(DB_PORT=.*\)$/#\1/' {{ laravel_project }}/.env
+        sed -i 's/^\(DB_DATABASE=.*\)$/#\1/' {{ laravel_project }}/.env
+        sed -i 's/^\(DB_USERNAME=.*\)$/#\1/' {{ laravel_project }}/.env
+        sed -i 's/^\(DB_PASSWORD=.*\)$/#\1/' {{ laravel_project }}/.env
+        echo "### Database configuration
+        DB_CONNECTION=mysql
+        DB_HOST={{ db_host }}
+        DB_PORT={{ db_port }}
+        DB_DATABASE={{ db_name }}
+        DB_USERNAME={{ db_user }}
+        DB_PASSWORD={{ db_password }}" >> {{ laravel_project }}/.env
+
+    - name: Migrate database
+      command: php artisan migrate
+      args:
+        chdir: '{{ laravel_project }}'

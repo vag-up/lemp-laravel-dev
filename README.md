@@ -1,13 +1,14 @@
-# LEMP構成のPHP開発環境を構築
+# LEMP構成でPHPのLaravel開発環境を構築
 
 Vagrantコマンドの実行でVirtualBoxベースの仮想環境(Ubuntu22)上にLEMP環境を構築します。
-LEMP環境に対してVSCodeでリモートデバッグができます。
+LEMP環境上のLaravelプロジェクトに対してVSCodeでリモートデバッグができます。
 
-LEMP環境は最新のバージョンがインストールされます。
+LEMP環境、Laravelは最新のバージョンがインストールされます。
 
 - PHP 8.4
 - Nginx 1.18
 - MariaDB 11.7
+- Laravel 11.
 
 ![lemp-dev](https://github.com/user-attachments/assets/faf7eb41-6778-4a94-a624-e312c1291f31)
 
@@ -46,20 +47,6 @@ vagrant up
 
 ```
 http://192.168.33.10
-```
-
-## サンプルスクリプト
-
-2つのPHPスクリプトが実行できます。
-
-- index.php - phpinfo()を表示します
-- index2.php - DBに登録したデータを表示します
-
-以下のURLでアクセスできます。
-
-```
-http://192.168.33.10/
-http://192.168.33.10/index2.php
 ```
 
 ## phpMyAdmin
