@@ -24,6 +24,8 @@
     # Laravel
     laravel_version: '11.*'
     laravel_project: /var/www/remote/laravel-app
+    laravel_timezone: Asia/Tokyo
+    laravel_locale: ja_JP
 
     # Database for development
     db_host: 'localhost'
@@ -51,26 +53,44 @@
 
   tasks:
     - name: Create Laravel project
-      shell: composer create-project 'laravel/laravel:{{ laravel_version }}' laravel-app
+      #shell: composer create-project 'laravel/laravel:{{ laravel_version }}' laravel-app
+      command: composer create-project 'laravel/laravel:{{ laravel_version }}' laravel-app
       args:
         chdir: /var/www/remote
-        creates: /var/www/remote/laravel-app
+        creates: '{{ laravel_project }}'
+
+    - name: Install language package
+      command: composer require laravel-lang/common --dev
+      args:
+        chdir: '{{ laravel_project }}'
+
+    - name: Add Japanese language
+      command: php artisan lang:add ja
+      args:
+        chdir: '{{ laravel_project }}'
+
+    - name: Set Japanese environment
+      lineinfile:
+        path: '{{ laravel_project }}/.env'
+        regexp: '{{ item.regexp }}'
+        line: '{{ item.line }}'
+      with_items:
+        - { regexp: '^APP_LOCALE=.*', line: 'APP_LOCALE=ja' }
+        - { regexp: '^APP_FAKER_LOCALE=.*', line: 'APP_FAKER_LOCALE={{ laravel_locale }}' }
+        - { regexp: '^APP_TIMEZONE=.*', line: 'APP_TIMEZONE={{ laravel_timezone }}' }
 
     - name: Add database configuration to .env file
-      shell: |
-        sed -i 's/^\(DB_CONNECTION=.*\)$/#\1/' {{ laravel_project }}/.env
-        sed -i 's/^\(DB_HOST=.*\)$/#\1/' {{ laravel_project }}/.env
-        sed -i 's/^\(DB_PORT=.*\)$/#\1/' {{ laravel_project }}/.env
-        sed -i 's/^\(DB_DATABASE=.*\)$/#\1/' {{ laravel_project }}/.env
-        sed -i 's/^\(DB_USERNAME=.*\)$/#\1/' {{ laravel_project }}/.env
-        sed -i 's/^\(DB_PASSWORD=.*\)$/#\1/' {{ laravel_project }}/.env
-        echo "### Database configuration
-        DB_CONNECTION=mysql
-        DB_HOST={{ db_host }}
-        DB_PORT={{ db_port }}
-        DB_DATABASE={{ db_name }}
-        DB_USERNAME={{ db_user }}
-        DB_PASSWORD={{ db_password }}" >> {{ laravel_project }}/.env
+      lineinfile:
+        path: '{{ laravel_project }}/.env'
+        regexp: '{{ item.regexp }}'
+        line: '{{ item.line }}'
+      loop:
+        - { regexp: '^#?\s*DB_CONNECTION=.*', line: 'DB_CONNECTION=mysql' }
+        - { regexp: '^#?\s*DB_HOST=.*',       line: 'DB_HOST={{ db_host }}' }
+        - { regexp: '^#?\s*DB_PORT=.*',       line: 'DB_PORT={{ db_port }}' }
+        - { regexp: '^#?\s*DB_DATABASE=.*',   line: 'DB_DATABASE={{ db_name }}' }
+        - { regexp: '^#?\s*DB_USERNAME=.*',   line: 'DB_USERNAME={{ db_user }}' }
+        - { regexp: '^#?\s*DB_PASSWORD=.*',   line: 'DB_PASSWORD={{ db_password }}' }
 
     - name: Migrate database
       command: php artisan migrate

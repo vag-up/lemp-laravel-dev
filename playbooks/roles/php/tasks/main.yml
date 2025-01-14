@@ -44,8 +44,3 @@
     src: php.ini.j2
     dest: "/etc/php/{{php_version}}/fpm/php.ini"
   notify: Restart php-fpm
-
-# - name: Upload sample script
-#   template:
-#     src: index2.php.j2
-#     dest: /var/www/remote/app/index2.php
