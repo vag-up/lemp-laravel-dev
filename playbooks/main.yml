@@ -58,16 +58,19 @@
       args:
         chdir: /var/www/remote
         creates: '{{ laravel_project }}'
+      register: create_laravel_project
 
     - name: Install language package
       command: composer require laravel-lang/common --dev
       args:
         chdir: '{{ laravel_project }}'
+      when: create_laravel_project.changed
 
     - name: Add Japanese language
       command: php artisan lang:add ja
       args:
         chdir: '{{ laravel_project }}'
+      when: create_laravel_project.changed
 
     - name: Set Japanese environment
       lineinfile:
