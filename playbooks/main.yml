@@ -54,7 +54,7 @@
   tasks:
     - name: Create Laravel project
       #shell: composer create-project 'laravel/laravel:{{ laravel_version }}' laravel-app
-      command: composer create-project 'laravel/laravel:{{ laravel_version }}' laravel-app
+      command: composer -q create-project 'laravel/laravel:{{ laravel_version }}' laravel-app
       args:
         chdir: /var/www/remote
         creates: '{{ laravel_project }}'
