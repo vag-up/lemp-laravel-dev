@@ -52,41 +52,54 @@
     - phpmyadmin
 
   tasks:
-    - name: Create Laravel project
-      #shell: composer create-project 'laravel/laravel:{{ laravel_version }}' laravel-app
+    - name: Check if Laravel project directory exists
+      stat:
+        path: "{{ laravel_project }}"
+      register: laravel_dir
+
+    - name: Create temporary directory
+      tempfile:
+        state: directory
+        suffix: _laravel_temp
+      register: temp_dir
+      when: not laravel_dir.stat.exists
+
+    - name: Create Laravel project in temporary directory
       command: composer -q create-project 'laravel/laravel:{{ laravel_version }}' laravel-app
       args:
-        chdir: /var/www/remote
-        creates: '{{ laravel_project }}'
+        chdir: "{{ temp_dir.path }}"
+        creates: "{{ temp_dir.path }}/laravel-app"
       register: create_laravel_project
+      when: not laravel_dir.stat.exists
 
     - name: Install language package
       command: composer require laravel-lang/common --dev
       args:
-        chdir: '{{ laravel_project }}'
-      when: create_laravel_project.changed
+        chdir: "{{ temp_dir.path }}/laravel-app"
+      when: not laravel_dir.stat.exists
 
     - name: Add Japanese language
       command: php artisan lang:add ja
       args:
-        chdir: '{{ laravel_project }}'
-      when: create_laravel_project.changed
+        chdir: "{{ temp_dir.path }}/laravel-app"
+      when: not laravel_dir.stat.exists
 
     - name: Set Japanese environment
       lineinfile:
-        path: '{{ laravel_project }}/.env'
-        regexp: '{{ item.regexp }}'
-        line: '{{ item.line }}'
+        path: "{{ temp_dir.path }}/laravel-app/.env"
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
       with_items:
         - { regexp: '^APP_LOCALE=.*', line: 'APP_LOCALE=ja' }
         - { regexp: '^APP_FAKER_LOCALE=.*', line: 'APP_FAKER_LOCALE={{ laravel_locale }}' }
         - { regexp: '^APP_TIMEZONE=.*', line: 'APP_TIMEZONE={{ laravel_timezone }}' }
+      when: not laravel_dir.stat.exists
 
     - name: Add database configuration to .env file
       lineinfile:
-        path: '{{ laravel_project }}/.env'
-        regexp: '{{ item.regexp }}'
-        line: '{{ item.line }}'
+        path: "{{ temp_dir.path }}/laravel-app/.env"
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
       loop:
         - { regexp: '^#?\s*DB_CONNECTION=.*', line: 'DB_CONNECTION=mysql' }
         - { regexp: '^#?\s*DB_HOST=.*',       line: 'DB_HOST={{ db_host }}' }
@@ -94,8 +107,29 @@
         - { regexp: '^#?\s*DB_DATABASE=.*',   line: 'DB_DATABASE={{ db_name }}' }
         - { regexp: '^#?\s*DB_USERNAME=.*',   line: 'DB_USERNAME={{ db_user }}' }
         - { regexp: '^#?\s*DB_PASSWORD=.*',   line: 'DB_PASSWORD={{ db_password }}' }
+      when: not laravel_dir.stat.exists
+
+    - name: Ensure target directory exists
+      file:
+        path: "{{ laravel_project | dirname }}"
+        state: directory
+        mode: '0755'
+      when: not laravel_dir.stat.exists
+
+    - name: Move Laravel project to final location
+      command: mv "{{ temp_dir.path }}/laravel-app" "{{ laravel_project }}"
+      args:
+        creates: "{{ laravel_project }}"
+      when: not laravel_dir.stat.exists
+
+    - name: Clean up temporary directory
+      file:
+        path: "{{ temp_dir.path }}"
+        state: absent
+      when: not laravel_dir.stat.exists
 
     - name: Migrate database
       command: php artisan migrate
       args:
-        chdir: '{{ laravel_project }}'
+        chdir: "{{ laravel_project }}"
+      when: not laravel_dir.stat.exists
